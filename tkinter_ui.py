@@ -83,6 +83,9 @@ class GridConquerUI:
         self.style = ttk.Style()
         self.style.configure('Board.TButton', padding=5)
         self.style.configure('Info.TLabel', padding=5)
+        self.style.configure('ValidMove.TButton', background='green')
+        self.style.configure('ValidAttack.TButton', background='red')
+        self.style.configure('ValidHeal.TButton', background='blue')
         
         # Bind events
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -116,14 +119,28 @@ class GridConquerUI:
         for y in range(BOARD_SIZE):
             row = []
             for x in range(BOARD_SIZE):
+                # Create frame for button and HP bar
+                cell_frame = ttk.Frame(self.board_frame)
+                cell_frame.grid(row=y, column=x, padx=1, pady=1)
+                
+                # Create button
                 btn = ttk.Button(
-                    self.board_frame,
+                    cell_frame,
                     style='Board.TButton',
                     width=8,
                     command=lambda x=x, y=y: self.handle_click(x, y)
                 )
-                btn.grid(row=y, column=x, padx=1, pady=1)
-                row.append(btn)
+                btn.grid(row=0, column=0)
+                
+                # Create HP bar
+                hp_bar = ttk.Progressbar(
+                    cell_frame,
+                    length=60,
+                    mode='determinate'
+                )
+                hp_bar.grid(row=1, column=0, pady=1)
+                
+                row.append((btn, hp_bar))
             self.board_buttons.append(row)
             
     def create_troop_panel(self):
@@ -205,16 +222,22 @@ class GridConquerUI:
         """Update the game board display."""
         for y in range(BOARD_SIZE):
             for x in range(BOARD_SIZE):
-                btn = self.board_buttons[y][x]
+                btn, hp_bar = self.board_buttons[y][x]
                 unit = self.game_engine.get_unit_at((x, y))
                 
                 if unit and unit.alive:
                     # Set unit image based on type and player
                     image_key = f"{unit.unit_type.name.lower()}_{unit.player}"
                     btn.configure(image=self.images.get(image_key, ''))
+                    
+                    # Update HP bar
+                    hp_percentage = (unit.hp / unit.max_hp) * 100
+                    hp_bar['value'] = hp_percentage
+                    hp_bar.grid()  # Show HP bar
                 else:
                     # Set grass background
                     btn.configure(image=self.images['grass'])
+                    hp_bar.grid_remove()  # Hide HP bar
                     
                 # Update button style based on valid actions
                 if self.game_engine.selected_unit:
@@ -299,10 +322,13 @@ class GridConquerUI:
                 # Try to perform an action
                 if position in self.game_engine.valid_moves:
                     self.game_engine.move_unit(position)
+                    self.game_engine.end_turn()  # End turn after move
                 elif position in self.game_engine.valid_attacks:
                     self.game_engine.attack_unit(position)
+                    self.game_engine.end_turn()  # End turn after attack
                 elif position in self.game_engine.valid_heals:
                     self.game_engine.heal_unit(position)
+                    self.game_engine.end_turn()  # End turn after heal
                 else:
                     # Deselect unit if clicking elsewhere
                     self.game_engine.selected_unit = None
