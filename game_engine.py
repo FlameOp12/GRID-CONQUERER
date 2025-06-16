@@ -117,6 +117,12 @@ class GameEngine:
         if not target_unit.alive:
             del self.units[target_position]
             
+        # Clear selection and valid actions
+        self.selected_unit = None
+        self.valid_moves = []
+        self.valid_attacks = []
+        self.valid_heals = []
+            
         # End turn
         self.end_turn()
         return True
