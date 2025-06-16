@@ -55,7 +55,7 @@ class Unit:
 
     def get_valid_attacks(self, board_size: int, enemy_positions: List[Tuple[int, int]]) -> List[Tuple[int, int]]:
         """Get all valid attack positions for this unit."""
-        if not self.alive or self.unit_type in [UnitType.WALL, UnitType.CROWN]:
+        if not self.alive or self.unit_type in [UnitType.WALL, UnitType.CROWN, UnitType.HEALER]:
             return []
 
         valid_attacks = []
@@ -68,7 +68,7 @@ class Unit:
         elif self.unit_type == UnitType.KNIGHT:
             directions = DIAGONAL_DIRECTIONS
         else:  # Healer
-            directions = ALL_DIRECTIONS
+            return []  # Healers cannot attack
 
         for dx, dy in directions:
             for i in range(1, attack_range + 1):

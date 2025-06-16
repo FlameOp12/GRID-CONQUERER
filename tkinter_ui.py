@@ -5,7 +5,7 @@ import os
 from typing import Tuple, Optional
 from constants import (
     BOARD_SIZE, PLAYER1_COLOR, PLAYER2_COLOR,
-    GameState, UnitType, HEAL_AMOUNT
+    GameState, UnitType, HEAL_AMOUNT, HEALER_HEAL_COST
 )
 from game_engine import GameEngine
 
@@ -69,6 +69,30 @@ class GridConquerUI:
         # Initialize game engine
         self.game_engine = GameEngine()
         
+        # Style configuration
+        self.style = ttk.Style()
+        self.style.configure('Board.TButton', padding=5)
+        self.style.configure('Info.TLabel', padding=5)
+        self.style.configure('ValidMove.TButton', background='green')
+        self.style.configure('ValidAttack.TButton', background='red')
+        self.style.configure('ValidHeal.TButton', background='blue')
+        self.style.configure('InvalidHeal.TButton', background='gray')
+        
+        # Configure HP bar style
+        self.style.layout('HP.TProgressbar', 
+            [('Horizontal.Progressbar.trough',
+                {'children': [('Horizontal.Progressbar.pbar',
+                    {'side': 'left', 'sticky': 'ns'})],
+                'sticky': 'nswe'})])
+        self.style.configure('HP.TProgressbar',
+            troughcolor='#E0E0E0',
+            background='#4CAF50',
+            thickness=15,
+            borderwidth=0)
+        self.style.configure('HP.TLabel',
+            font=('Arial', 8),
+            padding=0)
+        
         # Create board buttons
         self.board_buttons = []
         self.create_board()
@@ -78,14 +102,6 @@ class GridConquerUI:
         
         # Create info labels
         self.create_info_panel()
-        
-        # Style configuration
-        self.style = ttk.Style()
-        self.style.configure('Board.TButton', padding=5)
-        self.style.configure('Info.TLabel', padding=5)
-        self.style.configure('ValidMove.TButton', background='green')
-        self.style.configure('ValidAttack.TButton', background='red')
-        self.style.configure('ValidHeal.TButton', background='blue')
         
         # Bind events
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -132,15 +148,29 @@ class GridConquerUI:
                 )
                 btn.grid(row=0, column=0)
                 
+                # Create HP bar frame
+                hp_frame = ttk.Frame(cell_frame)
+                hp_frame.grid(row=1, column=0, pady=1)
+                
                 # Create HP bar
                 hp_bar = ttk.Progressbar(
-                    cell_frame,
+                    hp_frame,
                     length=60,
-                    mode='determinate'
+                    mode='determinate',
+                    style='HP.TProgressbar'
                 )
-                hp_bar.grid(row=1, column=0, pady=1)
+                hp_bar.pack(side=tk.LEFT, padx=1)
                 
-                row.append((btn, hp_bar))
+                # Create HP text label
+                hp_text = ttk.Label(
+                    hp_frame,
+                    text="",
+                    style='HP.TLabel',
+                    width=8
+                )
+                hp_text.pack(side=tk.LEFT, padx=1)
+                
+                row.append((btn, hp_bar, hp_text))
             self.board_buttons.append(row)
             
     def create_troop_panel(self):
@@ -222,7 +252,7 @@ class GridConquerUI:
         """Update the game board display."""
         for y in range(BOARD_SIZE):
             for x in range(BOARD_SIZE):
-                btn, hp_bar = self.board_buttons[y][x]
+                btn, hp_bar, hp_text = self.board_buttons[y][x]
                 unit = self.game_engine.get_unit_at((x, y))
                 
                 if unit and unit.alive:
@@ -230,14 +260,21 @@ class GridConquerUI:
                     image_key = f"{unit.unit_type.name.lower()}_{unit.player}"
                     btn.configure(image=self.images.get(image_key, ''))
                     
-                    # Update HP bar
+                    # Update HP bar and text
                     hp_percentage = (unit.hp / unit.max_hp) * 100
                     hp_bar['value'] = hp_percentage
-                    hp_bar.grid()  # Show HP bar
+                    
+                    # Update HP text
+                    hp_text.configure(text=f"{unit.hp}/{unit.max_hp}")
+                    
+                    # Show HP elements
+                    hp_bar.master.grid()
                 else:
                     # Set grass background
                     btn.configure(image=self.images['grass'])
-                    hp_bar.grid_remove()  # Hide HP bar
+                    
+                    # Hide HP elements
+                    hp_bar.master.grid_remove()
                     
                 # Update button style based on valid actions
                 if self.game_engine.selected_unit:
@@ -246,7 +283,14 @@ class GridConquerUI:
                     elif (x, y) in self.game_engine.valid_attacks:
                         btn.configure(style='ValidAttack.TButton')
                     elif (x, y) in self.game_engine.valid_heals:
-                        btn.configure(style='ValidHeal.TButton')
+                        # Check if target can be healed
+                        target_unit = self.game_engine.get_unit_at((x, y))
+                        if (target_unit and 
+                            target_unit.hp < target_unit.max_hp and 
+                            self.game_engine.selected_unit.hp > HEALER_HEAL_COST):
+                            btn.configure(style='ValidHeal.TButton')
+                        else:
+                            btn.configure(style='InvalidHeal.TButton')
                     else:
                         btn.configure(style='Board.TButton')
                 else:
@@ -268,6 +312,13 @@ class GridConquerUI:
         if self.game_engine.selected_unit:
             unit = self.game_engine.selected_unit
             info_text = f"Selected: {unit.unit_type.name}\nHP: {unit.hp}/{unit.max_hp}"
+            
+            # Add healer-specific info
+            if unit.unit_type == UnitType.HEALER:
+                info_text += f"\nHeal Cost: {HEALER_HEAL_COST} HP"
+                if unit.hp <= HEALER_HEAL_COST:
+                    info_text += "\nCannot heal - Not enough HP!"
+                    
             self.unit_info.configure(text=info_text)
             
             # Update valid actions
@@ -278,6 +329,8 @@ class GridConquerUI:
                 moves_text += "Valid attacks: " + ", ".join(f"{chr(65+x)}{y+1}" for x, y in self.game_engine.valid_attacks) + "\n"
             if self.game_engine.valid_heals:
                 moves_text += "Valid heals: " + ", ".join(f"{chr(65+x)}{y+1}" for x, y in self.game_engine.valid_heals)
+                if unit.unit_type == UnitType.HEALER:
+                    moves_text += "\n(Only units with less than full HP can be healed)"
             self.moves_info.configure(text=moves_text)
         else:
             self.unit_info.configure(text="No unit selected")

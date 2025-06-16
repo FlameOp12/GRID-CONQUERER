@@ -127,6 +127,16 @@ class GameEngine:
             return False
             
         target_unit = self.units[target_position]
+        
+        # Check if target unit is already at full HP
+        if target_unit.hp >= target_unit.max_hp:
+            return False
+            
+        # Check if healer has enough HP to heal
+        if self.selected_unit.hp <= HEALER_HEAL_COST:
+            return False
+            
+        # Perform healing
         target_unit.heal(HEAL_AMOUNT)
         self.selected_unit.heal(HEALER_HEAL_COST)
         
