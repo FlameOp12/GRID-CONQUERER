@@ -86,8 +86,16 @@ class TerminalGame:
                 unit_type = UnitType.CROWN
                 print("Place your Crown (👑)")
             else:
-                self.game_engine.start_game()
-                break
+                # Check if both players have placed all units
+                player1_units = [u for u in self.game_engine.get_all_units() if u.player == 1]
+                player2_units = [u for u in self.game_engine.get_all_units() if u.player == 2]
+                if len(player1_units) == 5 and len(player2_units) == 5:
+                    self.game_engine.start_game()
+                    break
+                else:
+                    # Switch to other player if current player has placed all units
+                    self.game_engine.current_player = 3 - player
+                    continue
 
             pos = self.get_position_input("Enter position (e.g., A1) or Q to quit: ")
             if pos is None:
@@ -97,6 +105,7 @@ class TerminalGame:
                 print("Invalid placement! Try again.")
                 continue
                 
+            # Switch player after successful placement
             self.game_engine.current_player = 3 - player
             
         return True
