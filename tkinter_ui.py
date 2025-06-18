@@ -46,7 +46,20 @@ class GridConquerUI:
         self.root.title("Grid Conquer")
         self.root.resizable(False, False)
         self.root.configure(bg="#e3f2fd")
-        self.root.geometry("1400x1100")  # Set a large window size
+        
+        # Get screen size and set window size to 80% of screen
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        window_width = int(screen_width * 0.8)
+        window_height = int(screen_height * 0.8)
+        self.root.geometry(f"{window_width}x{window_height}")
+        
+        # Calculate cell size based on available board area (make board square)
+        board_area = min(window_width, window_height) * 0.8  # 80% of window for board
+        self.cell_size = int(board_area // BOARD_SIZE)
+        self.btn_size = self.cell_size - 8
+        self.hp_bar_width = self.btn_size
+        self.hp_bar_height = max(18, self.cell_size // 6)
         
         # Load images
         self.images = {}
@@ -127,7 +140,7 @@ class GridConquerUI:
                 cell_frame = tk.Frame(self.board_frame, bg=self.tile_colors[(x + y) % 2], bd=0, highlightthickness=0)
                 cell_frame.grid(row=y, column=x, padx=3, pady=3, sticky="nsew")
                 cell_frame.grid_propagate(False)
-                cell_frame.config(width=100, height=110)
+                cell_frame.config(width=self.cell_size, height=self.cell_size + self.hp_bar_height)
                 
                 # Create button with rounded corners effect
                 btn = tk.Button(
@@ -135,18 +148,18 @@ class GridConquerUI:
                     relief=tk.FLAT,
                     bg=self.tile_colors[(x + y) % 2],
                     activebackground="#90caf9",
-                    font=("Segoe UI", 22, "bold"),
+                    font=("Segoe UI", max(14, self.btn_size // 4), "bold"),
                     borderwidth=0,
                     highlightthickness=0,
                     command=lambda x=x, y=y: self.handle_click(x, y)
                 )
-                btn.place(x=4, y=4, width=92, height=92)
+                btn.place(x=4, y=4, width=self.btn_size, height=self.btn_size)
                 btn.bind('<Enter>', lambda e, b=btn: b.config(bg="#b3e5fc"))
                 btn.bind('<Leave>', lambda e, b=btn, c=self.tile_colors[(x + y) % 2]: b.config(bg=c))
                 
                 # Create HP bar canvas (for custom color and text)
-                hp_canvas = tk.Canvas(cell_frame, width=92, height=18, bg='#f5f5f5', highlightthickness=0, bd=0)
-                hp_canvas.place(x=4, y=94)
+                hp_canvas = tk.Canvas(cell_frame, width=self.hp_bar_width, height=self.hp_bar_height, bg='#f5f5f5', highlightthickness=0, bd=0)
+                hp_canvas.place(x=4, y=self.btn_size + 6)
                 
                 row.append((btn, hp_canvas, cell_frame))
             self.board_buttons.append(row)
@@ -245,15 +258,15 @@ class GridConquerUI:
                     # Draw yellow HP bar with value inside
                     hp_canvas.delete("all")
                     hp_percentage = (unit.hp / unit.max_hp)
-                    bar_length = int(92 * hp_percentage)
-                    r = 9
+                    bar_length = int(self.hp_bar_width * hp_percentage)
+                    r = max(9, self.hp_bar_height // 2)
                     if bar_length > 0:
-                        hp_canvas.create_rectangle(0, 0, bar_length, 18, fill='#FFD600', outline='', width=0)
-                        hp_canvas.create_oval(0, 0, r*2, 18, fill='#FFD600', outline='')
+                        hp_canvas.create_rectangle(0, 0, bar_length, self.hp_bar_height, fill='#FFD600', outline='', width=0)
+                        hp_canvas.create_oval(0, 0, r*2, self.hp_bar_height, fill='#FFD600', outline='')
                         if bar_length > r:
-                            hp_canvas.create_oval(bar_length-r*2, 0, bar_length, 18, fill='#FFD600', outline='')
+                            hp_canvas.create_oval(bar_length-r*2, 0, bar_length, self.hp_bar_height, fill='#FFD600', outline='')
                     hp_text = f"{unit.hp}/{unit.max_hp}"
-                    hp_canvas.create_text(46, 9, text=hp_text, fill='black', font=('Segoe UI', 11, 'bold'))
+                    hp_canvas.create_text(self.hp_bar_width//2, self.hp_bar_height//2, text=hp_text, fill='black', font=('Segoe UI', max(9, self.hp_bar_height//2), 'bold'))
                     hp_canvas.grid()
                 else:
                     btn.config(image='', text="", relief=tk.FLAT)
