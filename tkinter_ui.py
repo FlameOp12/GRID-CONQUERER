@@ -107,7 +107,7 @@ class GridConquerUI:
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
         
     def load_images(self):
-        """Load all game images."""
+        """Load all game images and resize them to the current button size."""
         image_files = {
             'grass': 'grass.png',
             'soldier_1': 'soldier-1.png',
@@ -125,7 +125,7 @@ class GridConquerUI:
         for key, filename in image_files.items():
             try:
                 image = Image.open(os.path.join('assets', filename))
-                image = image.resize((60, 60), Image.Resampling.LANCZOS)
+                image = image.resize((self.btn_size, self.btn_size), Image.Resampling.LANCZOS)
                 self.images[key] = ImageTk.PhotoImage(image)
             except Exception as e:
                 print(f"Error loading image {filename}: {e}")
