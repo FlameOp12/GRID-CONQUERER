@@ -45,53 +45,30 @@ class GridConquerUI:
         self.root = tk.Tk()
         self.root.title("Grid Conquer")
         self.root.resizable(False, False)
+        self.root.configure(bg="#e3f2fd")
         
         # Load images
         self.images = {}
         self.load_images()
         
-        # Create main frame
-        self.main_frame = ttk.Frame(self.root, padding="10")
+        # Create main frame with padding and modern look
+        self.main_frame = tk.Frame(self.root, bg="#e3f2fd", padx=20, pady=20)
         self.main_frame.grid(row=0, column=0, sticky=(tk.W, tk.E, tk.N, tk.S))
         
         # Create game board
-        self.board_frame = ttk.Frame(self.main_frame)
+        self.board_frame = tk.Frame(self.main_frame, bg="#90caf9", bd=4, relief=tk.RIDGE)
         self.board_frame.grid(row=0, column=0, padx=10, pady=10)
         
-        # Create troop selection panel
-        self.troop_frame = ttk.Frame(self.main_frame)
+        # Create troop selection panel with card look
+        self.troop_frame = tk.Frame(self.main_frame, bg="#fffde7", bd=2, relief=tk.GROOVE, padx=10, pady=10)
         self.troop_frame.grid(row=0, column=1, padx=10, pady=10, sticky=(tk.W, tk.E, tk.N, tk.S))
         
-        # Create info panel
-        self.info_frame = ttk.Frame(self.main_frame)
+        # Create info panel with card look
+        self.info_frame = tk.Frame(self.main_frame, bg="#f5f5f5", bd=2, relief=tk.GROOVE, padx=10, pady=10)
         self.info_frame.grid(row=0, column=2, padx=10, pady=10, sticky=(tk.W, tk.E, tk.N, tk.S))
         
         # Initialize game engine
         self.game_engine = GameEngine()
-        
-        # Style configuration
-        self.style = ttk.Style()
-        self.style.configure('Board.TButton', padding=5)
-        self.style.configure('Info.TLabel', padding=5)
-        self.style.configure('ValidMove.TButton', background='green')
-        self.style.configure('ValidAttack.TButton', background='red')
-        self.style.configure('ValidHeal.TButton', background='blue')
-        self.style.configure('InvalidHeal.TButton', background='gray')
-        
-        # Configure HP bar style
-        self.style.layout('HP.TProgressbar', 
-            [('Horizontal.Progressbar.trough',
-                {'children': [('Horizontal.Progressbar.pbar',
-                    {'side': 'left', 'sticky': 'ns'})],
-                'sticky': 'nswe'})])
-        self.style.configure('HP.TProgressbar',
-            troughcolor='#E0E0E0',
-            background='#4CAF50',
-            thickness=15,
-            borderwidth=0)
-        self.style.configure('HP.TLabel',
-            font=('Arial', 8),
-            padding=0)
         
         # Create board buttons
         self.board_buttons = []
@@ -102,6 +79,15 @@ class GridConquerUI:
         
         # Create info labels
         self.create_info_panel()
+        
+        # Style configuration (for highlights)
+        self.style = ttk.Style()
+        self.style.configure('Board.TButton', padding=5)
+        self.style.configure('Info.TLabel', padding=5, font=("Segoe UI", 12))
+        self.style.configure('ValidMove.TButton', background='#a5d6a7')
+        self.style.configure('ValidAttack.TButton', background='#ef9a9a')
+        self.style.configure('ValidHeal.TButton', background='#b3e5fc')
+        self.style.configure('InvalidHeal.TButton', background='#eeeeee')
         
         # Bind events
         self.root.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -131,46 +117,37 @@ class GridConquerUI:
                 print(f"Error loading image {filename}: {e}")
                 
     def create_board(self):
-        """Create the game board with buttons."""
+        """Create the game board with buttons and modern appearance."""
+        self.tile_colors = ["#e3f2fd", "#bbdefb"]  # Soft blue and lighter blue
         for y in range(BOARD_SIZE):
             row = []
             for x in range(BOARD_SIZE):
                 # Create frame for button and HP bar
-                cell_frame = ttk.Frame(self.board_frame)
-                cell_frame.grid(row=y, column=x, padx=1, pady=1)
+                cell_frame = tk.Frame(self.board_frame, bg=self.tile_colors[(x + y) % 2], bd=0, highlightthickness=0)
+                cell_frame.grid(row=y, column=x, padx=2, pady=2, sticky="nsew")
+                cell_frame.grid_propagate(False)
+                cell_frame.config(width=64, height=72)
                 
-                # Create button
-                btn = ttk.Button(
+                # Create button with rounded corners effect
+                btn = tk.Button(
                     cell_frame,
-                    style='Board.TButton',
-                    width=8,
+                    relief=tk.FLAT,
+                    bg=self.tile_colors[(x + y) % 2],
+                    activebackground="#90caf9",
+                    font=("Segoe UI", 16, "bold"),
+                    borderwidth=0,
+                    highlightthickness=0,
                     command=lambda x=x, y=y: self.handle_click(x, y)
                 )
-                btn.grid(row=0, column=0)
+                btn.place(x=2, y=2, width=60, height=60)
+                btn.bind('<Enter>', lambda e, b=btn: b.config(bg="#b3e5fc"))
+                btn.bind('<Leave>', lambda e, b=btn, c=self.tile_colors[(x + y) % 2]: b.config(bg=c))
                 
-                # Create HP bar frame
-                hp_frame = ttk.Frame(cell_frame)
-                hp_frame.grid(row=1, column=0, pady=1)
+                # Create HP bar canvas (for custom color and text)
+                hp_canvas = tk.Canvas(cell_frame, width=60, height=16, bg='#f5f5f5', highlightthickness=0, bd=0)
+                hp_canvas.place(x=2, y=62)
                 
-                # Create HP bar
-                hp_bar = ttk.Progressbar(
-                    hp_frame,
-                    length=60,
-                    mode='determinate',
-                    style='HP.TProgressbar'
-                )
-                hp_bar.pack(side=tk.LEFT, padx=1)
-                
-                # Create HP text label
-                hp_text = ttk.Label(
-                    hp_frame,
-                    text="",
-                    style='HP.TLabel',
-                    width=8
-                )
-                hp_text.pack(side=tk.LEFT, padx=1)
-                
-                row.append((btn, hp_bar, hp_text))
+                row.append((btn, hp_canvas, cell_frame))
             self.board_buttons.append(row)
             
     def create_troop_panel(self):
@@ -252,49 +229,57 @@ class GridConquerUI:
         """Update the game board display."""
         for y in range(BOARD_SIZE):
             for x in range(BOARD_SIZE):
-                btn, hp_bar, hp_text = self.board_buttons[y][x]
+                btn, hp_canvas, cell_frame = self.board_buttons[y][x]
                 unit = self.game_engine.get_unit_at((x, y))
+                
+                # Set cell background
+                cell_frame.config(bg=self.tile_colors[(x + y) % 2])
+                btn.config(bg=self.tile_colors[(x + y) % 2], activebackground="#90caf9")
                 
                 if unit and unit.alive:
                     # Set unit image based on type and player
                     image_key = f"{unit.unit_type.name.lower()}_{unit.player}"
-                    btn.configure(image=self.images.get(image_key, ''))
+                    btn.config(image=self.images.get(image_key, ''), text="", relief=tk.FLAT)
                     
-                    # Update HP bar and text
-                    hp_percentage = (unit.hp / unit.max_hp) * 100
-                    hp_bar['value'] = hp_percentage
-                    
-                    # Update HP text
-                    hp_text.configure(text=f"{unit.hp}/{unit.max_hp}")
-                    
-                    # Show HP elements
-                    hp_bar.master.grid()
+                    # Draw yellow HP bar with value inside
+                    hp_canvas.delete("all")
+                    hp_percentage = (unit.hp / unit.max_hp)
+                    bar_length = int(60 * hp_percentage)
+                    # Draw yellow bar with rounded corners
+                    r = 7
+                    if bar_length > 0:
+                        hp_canvas.create_rectangle(0, 0, bar_length, 16, fill='#FFD600', outline='', width=0)
+                        hp_canvas.create_oval(0, 0, r*2, 16, fill='#FFD600', outline='')
+                        if bar_length > r:
+                            hp_canvas.create_oval(bar_length-r*2, 0, bar_length, 16, fill='#FFD600', outline='')
+                    # Draw HP text centered
+                    hp_text = f"{unit.hp}/{unit.max_hp}"
+                    hp_canvas.create_text(30, 8, text=hp_text, fill='black', font=('Segoe UI', 9, 'bold'))
+                    hp_canvas.grid()
                 else:
-                    # Set grass background
-                    btn.configure(image=self.images['grass'])
-                    
-                    # Hide HP elements
-                    hp_bar.master.grid_remove()
-                    
+                    btn.config(image='', text="", relief=tk.FLAT)
+                    hp_canvas.delete("all")
+                    hp_canvas.grid_remove()
+                
                 # Update button style based on valid actions
                 if self.game_engine.selected_unit:
                     if (x, y) in self.game_engine.valid_moves:
-                        btn.configure(style='ValidMove.TButton')
+                        btn.config(bg="#a5d6a7", activebackground="#81c784")
                     elif (x, y) in self.game_engine.valid_attacks:
-                        btn.configure(style='ValidAttack.TButton')
+                        btn.config(bg="#ef9a9a", activebackground="#e57373")
                     elif (x, y) in self.game_engine.valid_heals:
                         # Check if target can be healed
                         target_unit = self.game_engine.get_unit_at((x, y))
                         if (target_unit and 
                             target_unit.hp < target_unit.max_hp and 
                             self.game_engine.selected_unit.hp > HEALER_HEAL_COST):
-                            btn.configure(style='ValidHeal.TButton')
+                            btn.config(bg="#b3e5fc", activebackground="#4fc3f7")
                         else:
-                            btn.configure(style='InvalidHeal.TButton')
+                            btn.config(bg="#eeeeee", activebackground="#eeeeee")
                     else:
-                        btn.configure(style='Board.TButton')
+                        btn.config(bg=self.tile_colors[(x + y) % 2], activebackground="#90caf9")
                 else:
-                    btn.configure(style='Board.TButton')
+                    btn.config(bg=self.tile_colors[(x + y) % 2], activebackground="#90caf9")
                     
     def update_info_panel(self):
         """Update the information panel."""
@@ -377,11 +362,9 @@ class GridConquerUI:
                     self.game_engine.move_unit(position)
                     self.game_engine.end_turn()  # End turn after move
                 elif position in self.game_engine.valid_attacks:
-                    self.game_engine.attack_unit(position)
-                    self.game_engine.end_turn()  # End turn after attack
+                    self.game_engine.attack_unit(position)  # end_turn is called inside attack_unit
                 elif position in self.game_engine.valid_heals:
-                    self.game_engine.heal_unit(position)
-                    self.game_engine.end_turn()  # End turn after heal
+                    self.game_engine.heal_unit(position)    # end_turn is called inside heal_unit
                 else:
                     # Deselect unit if clicking elsewhere
                     self.game_engine.selected_unit = None
@@ -411,6 +394,27 @@ class GridConquerUI:
         # Recreate troop panel
         self.create_troop_panel()
         
+    def show_win_popup(self, winner):
+        popup = tk.Toplevel(self.root)
+        popup.title("Game Over!")
+        popup.geometry("350x180")
+        popup.configure(bg="#f5f5f5")
+        popup.transient(self.root)
+        popup.grab_set()
+        
+        msg = f"Player {winner} Wins!"
+        label = tk.Label(popup, text=msg, font=("Arial", 24, "bold"), fg="#388e3c", bg="#f5f5f5")
+        label.pack(pady=30)
+        
+        btn = tk.Button(popup, text="OK", font=("Arial", 14), bg="#4caf50", fg="white", relief=tk.RAISED, command=popup.destroy)
+        btn.pack(pady=10)
+        
+        # Center the popup
+        popup.update_idletasks()
+        x = self.root.winfo_x() + (self.root.winfo_width() // 2) - (popup.winfo_width() // 2)
+        y = self.root.winfo_y() + (self.root.winfo_height() // 2) - (popup.winfo_height() // 2)
+        popup.geometry(f"+{x}+{y}")
+
     def update_display(self):
         """Update the entire game display."""
         self.update_board()
@@ -421,6 +425,10 @@ class GridConquerUI:
             self.troop_frame.grid_remove()
         else:
             self.troop_frame.grid()
+        
+        # Show win popup if game is over
+        if self.game_engine.state == GameState.GAME_OVER:
+            self.show_win_popup(self.game_engine.winner)
             
     def on_closing(self):
         """Handle window closing."""

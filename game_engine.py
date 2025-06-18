@@ -138,13 +138,12 @@ class GameEngine:
         if target_unit.hp >= target_unit.max_hp:
             return False
             
-        # Check if healer has enough HP to heal
-        if self.selected_unit.hp <= HEALER_HEAL_COST:
-            return False
-            
+        # Determine actual heal amount (min of HEALER_HEAL_COST or healer's current HP)
+        actual_heal = min(HEALER_HEAL_COST, self.selected_unit.hp)
+        
         # Perform healing
-        target_unit.heal(HEAL_AMOUNT)
-        self.selected_unit.heal(HEALER_HEAL_COST)
+        target_unit.heal(actual_heal)
+        self.selected_unit.heal(actual_heal)  # Healer loses that much HP
         
         # Remove dead healer if it died from healing
         if not self.selected_unit.alive:
@@ -176,13 +175,26 @@ class GameEngine:
                             if u.player == 1 and u.unit_type == UnitType.CROWN), None)
         player2_crown = next((u for u in self.units.values() 
                             if u.player == 2 and u.unit_type == UnitType.CROWN), None)
-                            
+        
+        # Check if crown is dead
         if not player1_crown or not player1_crown.alive:
             self.state = GameState.GAME_OVER
             self.winner = 2
+            return
         elif not player2_crown or not player2_crown.alive:
             self.state = GameState.GAME_OVER
             self.winner = 1
+            return
+        
+        # Check for no attacking units left (only crown, wall, healer)
+        for player in [1, 2]:
+            units = [u for u in self.units.values() if u.player == player and u.alive]
+            non_attacking_types = {UnitType.CROWN, UnitType.WALL, UnitType.HEALER}
+            if all(u.unit_type in non_attacking_types for u in units):
+                # This player loses
+                self.state = GameState.GAME_OVER
+                self.winner = 2 if player == 1 else 1
+                return
 
     def get_unit_at(self, position: Tuple[int, int]) -> Optional[Unit]:
         """Get the unit at a specific position."""
