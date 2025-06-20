@@ -54,8 +54,17 @@ class GridConquerUI:
         window_height = int(screen_height * 0.8)
         self.root.geometry(f"{window_width}x{window_height}")
         
-        # Calculate cell size based on available board area (make board square)
-        board_area = min(window_width, window_height) * 0.8  # 80% of window for board
+        # Estimate side panel width (troop + info) and padding
+        side_panel_width = 400  # adjust if your panels are wider
+        padding = 80  # total horizontal padding
+        vertical_padding = 80  # total vertical padding
+        
+        # Calculate available width and height for the board
+        available_width = window_width - side_panel_width - padding
+        available_height = window_height - vertical_padding
+        
+        # Use the minimum for a square board
+        board_area = min(available_width, available_height)
         self.cell_size = int(board_area // BOARD_SIZE)
         self.btn_size = self.cell_size - 8
         self.hp_bar_width = self.btn_size
